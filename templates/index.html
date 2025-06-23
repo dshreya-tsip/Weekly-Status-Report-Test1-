@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Weekly Status Report</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  <style>
+    td input, td textarea, td select {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    td textarea {
+      min-height: 60px;
+      resize: none;
+      overflow: hidden;
+    }
+    th:nth-child(4), td:nth-child(4), th:nth-child(5), td:nth-child(5) {
+      min-width: 250px;
+    }
+    #wsrTable thead th {
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body class="p-4">
+  <h2 class="text-center mb-4">Weekly Status Report</h2>
+
+  <table id="wsrTable" class="table table-bordered">
+    <thead class="thead-dark">
+      <tr>
+        <th>Year</th>
+        <th>Month</th>
+        <th>Week Days</th>
+        <th>Etria</th>
+        <th>Solutions</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <button class="btn btn-success" onclick="addRow()">Add Row</button>
+  <button class="btn btn-primary" onclick="saveTable()">Save</button>
+  <a href="/download_csv" class="btn btn-info">Download CSV</a>
+
+  <script>
+    function autoResize(textarea) {
+      textarea.style.height = "auto";
+      textarea.style.height = textarea.scrollHeight + "px";
+    }
+    function addRow(data = ["", "", "", "", ""]) {
+      const table = document.getElementById("wsrTable").getElementsByTagName("tbody")[0];
+      const row = table.insertRow();
+      data.forEach((val, index) => {
+        const cell = row.insertCell();
+        if (index === 0) {
+          const select = document.createElement("select");
+          for (let year = 2020; year <= 2027; year++) {
+            const option = document.createElement("option");
+            option.value = year;
+            option.textContent = year;
+            if (val == year.toString()) option.selected = true;
+            select.appendChild(option);
+          }
+          cell.appendChild(select);
+        } else if (index === 1) {
+          const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          const select = document.createElement("select");
+          months.forEach((month) => {
+            const option = document.createElement("option");
+            option.value = month;
+            option.textContent = month;
+            if (val === month) option.selected = true;
+            select.appendChild(option);
+          });
+          cell.appendChild(select);
+        } else if (index === 3 || index === 4) {
+          const textarea = document.createElement("textarea");
+          textarea.value = val;
+          textarea.oninput = function () { autoResize(this); };
+          setTimeout(() => autoResize(textarea), 0);
+          cell.appendChild(textarea);
+        } else {
+          const input = document.createElement("input");
+          input.type = "text";
+          input.value = val;
+          cell.appendChild(input);
+        }
+      });
+      const deleteCell = row.insertCell();
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "Delete";
+      delBtn.className = "btn btn-danger btn-sm";
+      delBtn.onclick = () => row.remove();
+      deleteCell.appendChild(delBtn);
+    }
+
+    function saveTable() {
+      const rows = document.querySelectorAll("#wsrTable tbody tr");
+      const data = [];
+      rows.forEach((row) => {
+        const inputs = row.querySelectorAll("input, textarea, select");
+        const rowData = Array.from(inputs).map((input) => input.value.trim());
+        if (rowData.some((val) => val !== "")) data.push(rowData);
+      });
+      fetch("/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tableData: data }),
+      })
+        .then((res) => res.json())
+        .then((resp) => alert(resp.message || resp.error))
+        .catch((err) => alert("Save failed: " + err));
+    }
+
+    function loadTable() {
+      fetch("/data")
+        .then((res) => res.json())
+        .then((data) => {
+          const tableBody = document.querySelector("#wsrTable tbody");
+          tableBody.innerHTML = "";
+          data.forEach((row) => addRow(row));
+        })
+        .catch((err) => {
+          alert("Failed to load data: " + err);
+          addRow();
+        });
+    }
+
+    window.onload = loadTable;
+  </script>
+</body>
+</html>
