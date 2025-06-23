@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: wsr-tool
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "waitress-serve --port=$PORT app:app"
+    envVars:
+      - key: DATABASE_URL
+        value: <your-postgresql-connection-url-here>
