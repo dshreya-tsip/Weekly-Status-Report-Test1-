@@ -1,32 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Weekly Status Report</title>
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-  <style>
-    td input, td textarea, td select {
-      width: 100%;
-      box-sizing: border-box;
-      font-size: 14px;
-      font-family: inherit;
-    }
-    td textarea {
-      min-height: 60px;
-      resize: none;
-      overflow: hidden;
-    }
-    th:nth-child(4), td:nth-child(4), th:nth-child(5), td:nth-child(5) {
-      min-width: 250px;
-    }
-    #wsrTable thead th {
-      font-size: 24px;
-      font-weight: bold;
-      text-align: center;
-      vertical-align: middle;
-    }
-  </style>
-</head>
+<!-- ... keep your <head> and styling as is ... -->
 <body class="p-4">
   <h2 class="text-center mb-4">Weekly Status Report</h2>
 
@@ -46,13 +18,14 @@
 
   <button class="btn btn-success" onclick="addRow()">Add Row</button>
   <button class="btn btn-primary" onclick="saveTable()">Save</button>
-  <a href="/download_csv" class="btn btn-info">Download CSV</a>
+  <button id="downloadBtn" class="btn btn-info" onclick="downloadCSV()" disabled>Download CSV</button>
 
   <script>
     function autoResize(textarea) {
       textarea.style.height = "auto";
       textarea.style.height = textarea.scrollHeight + "px";
     }
+
     function addRow(data = ["", "", "", "", ""]) {
       const table = document.getElementById("wsrTable").getElementsByTagName("tbody")[0];
       const row = table.insertRow();
@@ -114,7 +87,10 @@
         body: JSON.stringify({ tableData: data }),
       })
         .then((res) => res.json())
-        .then((resp) => alert(resp.message || resp.error))
+        .then((resp) => {
+          alert(resp.message || resp.error);
+          updateDownloadButton(); // update after save
+        })
         .catch((err) => alert("Save failed: " + err));
     }
 
@@ -125,14 +101,35 @@
           const tableBody = document.querySelector("#wsrTable tbody");
           tableBody.innerHTML = "";
           data.forEach((row) => addRow(row));
+          updateDownloadButton(data); // update after load
         })
         .catch((err) => {
           alert("Failed to load data: " + err);
           addRow();
+          updateDownloadButton([]); // no data
         });
     }
 
-    window.onload = loadTable;
+    function updateDownloadButton(data) {
+      // Accept data as parameter if available, otherwise fetch
+      if (data === undefined) {
+        fetch("/data")
+          .then((res) => res.json())
+          .then((rows) => {
+            document.getElementById("downloadBtn").disabled = !rows.length;
+          });
+      } else {
+        document.getElementById("downloadBtn").disabled = !data.length;
+      }
+    }
+
+    function downloadCSV() {
+      window.location.href = "/download_csv";
+    }
+
+    window.onload = function() {
+      loadTable();
+    };
   </script>
 </body>
 </html>
