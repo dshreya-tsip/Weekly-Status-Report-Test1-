@@ -1,4 +1,43 @@
-<!-- ... keep your <head> and styling as is ... -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Weekly Status Report</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+
+
+  <style>
+    td input,
+    td textarea,
+    td select {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    td textarea {
+      min-height: 60px;
+      resize: none; /* Disable manual resizing */
+      overflow: hidden; /* Hide scrollbars */
+    }
+
+    th:nth-child(4),
+    td:nth-child(4),
+    th:nth-child(5),
+    td:nth-child(5) {
+      min-width: 250px;
+    }
+
+    /* Bigger, centered table headers */
+    #wsrTable thead th {
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      vertical-align: middle;
+    }
+  </style>
+</head>
 <body class="p-4">
   <h2 class="text-center mb-4">Weekly Status Report</h2>
 
@@ -18,20 +57,24 @@
 
   <button class="btn btn-success" onclick="addRow()">Add Row</button>
   <button class="btn btn-primary" onclick="saveTable()">Save</button>
-  <button id="downloadBtn" class="btn btn-info" onclick="downloadCSV()" disabled>Download CSV</button>
+  <a href="/download_csv" class="btn btn-info">Download CSV</a>
+
 
   <script>
     function autoResize(textarea) {
-      textarea.style.height = "auto";
-      textarea.style.height = textarea.scrollHeight + "px";
+      textarea.style.height = "auto"; // Reset height
+      textarea.style.height = textarea.scrollHeight + "px"; // Adjust height to content
     }
 
     function addRow(data = ["", "", "", "", ""]) {
       const table = document.getElementById("wsrTable").getElementsByTagName("tbody")[0];
       const row = table.insertRow();
+
       data.forEach((val, index) => {
         const cell = row.insertCell();
+
         if (index === 0) {
+          // Year dropdown (2020-2027)
           const select = document.createElement("select");
           for (let year = 2020; year <= 2027; year++) {
             const option = document.createElement("option");
@@ -41,8 +84,13 @@
             select.appendChild(option);
           }
           cell.appendChild(select);
+
         } else if (index === 1) {
-          const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          // Month dropdown (Jan - Dec)
+          const months = [
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+          ];
           const select = document.createElement("select");
           months.forEach((month) => {
             const option = document.createElement("option");
@@ -52,19 +100,25 @@
             select.appendChild(option);
           });
           cell.appendChild(select);
+
         } else if (index === 3 || index === 4) {
           const textarea = document.createElement("textarea");
           textarea.value = val;
-          textarea.oninput = function () { autoResize(this); };
-          setTimeout(() => autoResize(textarea), 0);
+          textarea.oninput = function () {
+            autoResize(this);
+          };
+          setTimeout(() => autoResize(textarea), 0); // Auto-expand after inserting
           cell.appendChild(textarea);
+
         } else {
+          // Other inputs as text fields
           const input = document.createElement("input");
           input.type = "text";
           input.value = val;
           cell.appendChild(input);
         }
       });
+
       const deleteCell = row.insertCell();
       const delBtn = document.createElement("button");
       delBtn.textContent = "Delete";
@@ -76,21 +130,22 @@
     function saveTable() {
       const rows = document.querySelectorAll("#wsrTable tbody tr");
       const data = [];
+
       rows.forEach((row) => {
         const inputs = row.querySelectorAll("input, textarea, select");
         const rowData = Array.from(inputs).map((input) => input.value.trim());
-        if (rowData.some((val) => val !== "")) data.push(rowData);
+        if (rowData.some((val) => val !== "")) {
+          data.push(rowData);
+        }
       });
+
       fetch("/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tableData: data }),
       })
         .then((res) => res.json())
-        .then((resp) => {
-          alert(resp.message || resp.error);
-          updateDownloadButton(); // update after save
-        })
+        .then((resp) => alert(resp.message || resp.error))
         .catch((err) => alert("Save failed: " + err));
     }
 
@@ -101,35 +156,14 @@
           const tableBody = document.querySelector("#wsrTable tbody");
           tableBody.innerHTML = "";
           data.forEach((row) => addRow(row));
-          updateDownloadButton(data); // update after load
         })
         .catch((err) => {
           alert("Failed to load data: " + err);
-          addRow();
-          updateDownloadButton([]); // no data
+          addRow(); // Add one empty row on failure
         });
     }
 
-    function updateDownloadButton(data) {
-      // Accept data as parameter if available, otherwise fetch
-      if (data === undefined) {
-        fetch("/data")
-          .then((res) => res.json())
-          .then((rows) => {
-            document.getElementById("downloadBtn").disabled = !rows.length;
-          });
-      } else {
-        document.getElementById("downloadBtn").disabled = !data.length;
-      }
-    }
-
-    function downloadCSV() {
-      window.location.href = "/download_csv";
-    }
-
-    window.onload = function() {
-      loadTable();
-    };
+    window.onload = loadTable;
   </script>
 </body>
 </html>
